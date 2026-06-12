@@ -1,0 +1,18 @@
+# Local environment / secrets
+.env
+
+# MSNoise project data & database (mounted at runtime, not versioned)
+project/*
+!project/.gitkeep
+
+# Client seismic data (mounted at runtime, not versioned)
+data/*
+!data/.gitkeep
+
+# Claude Code local data
+.claude/
+
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp

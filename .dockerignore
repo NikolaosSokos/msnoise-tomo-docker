@@ -1,0 +1,9 @@
+.git
+.gitignore
+.dockerignore
+.claude
+.env
+project
+data
+README.md
+*.md
