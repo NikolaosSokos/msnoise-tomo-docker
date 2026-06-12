@@ -1,5 +1,7 @@
 # MSNoise + MSNoise-Tomo — ready-to-run Docker environment
 
+> 🇬🇷 Ελληνικές οδηγίες για Windows: [README.gr.md](README.gr.md)
+
 A reproducible, pre-configured [MSNoise](https://www.msnoise.org/) installation
 **with the [msnoise-tomo](https://msnoise.org/plugins/msnoise-tomo/doc/) plugin
 already compiled and working** — so you don't have to fight Python versions,
@@ -66,11 +68,16 @@ Windows (PowerShell):
 Copy-Item .env.example .env
 ```
 
-**3. Build the image** (first time only — takes a few minutes)
+**3. Pull the prebuilt image** (no local build needed)
 
 ```bash
-docker compose build
+docker compose pull
 ```
+
+This downloads the ready-made image from the GitHub Container Registry, so you
+don't have to compile anything locally.
+
+> Prefer to build it yourself? Run `docker compose build` instead.
 
 That's it. The image now contains MSNoise + a working msnoise-tomo plugin.
 
