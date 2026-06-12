@@ -79,6 +79,11 @@ don't have to compile anything locally.
 
 > Prefer to build it yourself? Run `docker compose build` instead.
 
+> **Slow / unreliable connection?** Instead of pulling, load a single
+> ~416 MB image file: `docker load -i msnoise-tomo-image.tar.gz` (downloaded
+> with a resumable download manager), then run the commands below normally —
+> Compose will use the loaded image without pulling.
+
 That's it. The image now contains MSNoise + a working msnoise-tomo plugin.
 
 ---
