@@ -32,6 +32,21 @@ RUN pip install --no-cache-dir -r requirements.lock
 RUN pip install --no-cache-dir --no-build-isolation \
         "git+https://github.com/ThomasLecocq/msnoise-tomo.git@${TOMO_REF}"
 
+# Runtime compatibility patch for the plugin's ctypes wrappers.
+# The plugin targets an old obspy: it imports the private helper
+# `obspy.core.util.libnames._get_lib_name`, which obspy >=1.4 removed, so any
+# actual FTAN/tomography run crashed with ImportError even though the plugin
+# "loaded" at the CLI. The compiled libs are named plainly (vg_fta.so, ...), so
+# we drop the obspy import and build the filename directly. `future` (used by
+# the same wrappers for native_str) is pinned in requirements.lock.
+RUN set -e; \
+    LIBDIR="$(python -c 'import os,msnoise_tomo;print(os.path.join(os.path.dirname(msnoise_tomo.__file__),"lib"))')"; \
+    for f in libvg_fta libmkMatSmoothing libmk_MatPaths; do \
+        sed -i 's/^from obspy.core.util.libnames import cleanse_pymodule_filename, _get_lib_name/from obspy.core.util.libnames import cleanse_pymodule_filename/' "$LIBDIR/$f.py"; \
+        sed -i 's/_get_lib_name(lib, *add_extension_suffix=True)/(lib + ".so")/' "$LIBDIR/$f.py"; \
+    done; \
+    python -c "import msnoise_tomo.lib.libvg_fta, msnoise_tomo.lib.libmkMatSmoothing, msnoise_tomo.lib.libmk_MatPaths; print('tomo ctypes wrappers import OK')"
+
 # JupyterLab for the optional interactive profile.
 RUN pip install --no-cache-dir "jupyterlab>=4,<5"
 
@@ -51,8 +66,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Bring over the fully-built virtual environment from the builder stage.
 COPY --from=builder /opt/venv /opt/venv
 
-# Fail the build early if anything is mismatched.
-RUN python -c "import msnoise, msnoise_tomo; from msnoise_tomo import lib; print('build OK')"
+# Fail the build early if anything is mismatched. This goes beyond importing:
+# it runs a real FTAN computation on the plugin's bundled test SAC through the
+# compiled vg_fta extension, so a broken tomography path fails the build instead
+# of shipping a "loads but can't compute" image.
+RUN python -c "import msnoise, msnoise_tomo; print('imports OK')" && \
+    python -c "import os, shutil, tempfile, msnoise_tomo; \
+from msnoise_tomo.lib.libvg_fta import ftan; \
+d=tempfile.mkdtemp(); cwd=os.getcwd(); os.chdir(d); \
+sac=os.path.join(os.path.dirname(msnoise_tomo.__file__),'test','data','DK_NRS_DK_NUUG_Sym.SAC'); \
+shutil.copy(sac,'t.SAC'); \
+ftan('t.SAC',1.0,25.0,0.5,5.0,1.0,200.0,0,100,0.05,0); \
+assert os.path.getsize('write_amp.txt')>0, 'FTAN produced no output'; \
+os.chdir(cwd); shutil.rmtree(d); print('FTAN smoke test OK -> build OK')"
 
 WORKDIR /project
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
