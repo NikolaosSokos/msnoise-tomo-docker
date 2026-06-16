@@ -53,23 +53,25 @@ services:
     ports:
       - "127.0.0.1:${JUPYTER_PORT:-8888}:8888"
 
-  # ---- MariaDB backend (optional) --------------------------------------
-  # Activate by adding --profile mysql AND setting DB_TECH=mysql in .env
-  mariadb:
-    image: mariadb:11
+  # ---- MySQL backend (optional) ----------------------------------------
+  # Activate by adding --profile mysql AND setting DB_TECH=mysql in .env.
+  # Service name is "mysql" -> that is the hostname the app connects to
+  # (MYSQL_HOST=mysql in .env).
+  mysql:
+    image: mysql:8.0
     profiles: ["mysql"]
     environment:
-      MARIADB_DATABASE: ${MYSQL_DB:-msnoise}
-      MARIADB_USER: ${MYSQL_USER:-msnoise}
-      MARIADB_PASSWORD: ${MYSQL_PASSWORD:-msnoise}
-      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootmsnoise}
+      MYSQL_DATABASE: ${MYSQL_DB:-msnoise}
+      MYSQL_USER: ${MYSQL_USER:-msnoise}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-msnoise}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-rootmsnoise}
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-rootmsnoise}"]
       interval: 5s
       timeout: 5s
       retries: 20
 
 volumes:
-  mariadb_data:
+  mysql_data:

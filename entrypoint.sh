@@ -16,7 +16,7 @@ wait_for_mysql() {
   python - <<'PY'
 import os, sys, time, pymysql
 cfg = dict(
-    host=os.environ.get("MYSQL_HOST", "mariadb"),
+    host=os.environ.get("MYSQL_HOST", "mysql"),
     user=os.environ.get("MYSQL_USER", "msnoise"),
     password=os.environ.get("MYSQL_PASSWORD", "msnoise"),
     database=os.environ.get("MYSQL_DB", "msnoise"),
@@ -41,7 +41,7 @@ init_mysql() {
 import os
 from msnoise.s000installer import main
 main(tech=2,
-     hostname=os.environ.get("MYSQL_HOST", "mariadb"),
+     hostname=os.environ.get("MYSQL_HOST", "mysql"),
      username=os.environ.get("MYSQL_USER", "msnoise"),
      password=os.environ.get("MYSQL_PASSWORD", "msnoise"),
      database=os.environ.get("MYSQL_DB", "msnoise"))
@@ -53,6 +53,10 @@ if [ ! -f "$PROJECT_DIR/db.ini" ]; then
   if [ "$DB_TECH" = "mysql" ]; then init_mysql; else init_sqlite; fi
   echo "[entrypoint] Enabling the msnoise_tomo plugin..."
   msnoise config set plugins=msnoise_tomo
+  # Create the plugin's own tables (tomo-config, ...). Without this the tomo
+  # subcommands fail with a missing-table error on first use.
+  echo "[entrypoint] Installing msnoise_tomo tables..."
+  msnoise p tomo install || true
   echo "[entrypoint] MSNoise project ready in $PROJECT_DIR"
 else
   echo "[entrypoint] Using existing MSNoise project in $PROJECT_DIR"
